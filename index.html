@@ -4,7 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aromas - OSHI HOME</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    // --- CONFIGURACIÓN ---
+        const SUPABASE_URL = "https://gudhifoitegxqqxihqoe.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_ZSVDO8PMA26pQ7d-rpE0Hg_MX8PJT_E";
+        
+        // Cambiamos el nombre a 'supabaseClient' para evitar conflictos
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- FUNCIONES ---
+        async function init() {
+            try {
+                // Usamos supabaseClient en lugar de supabase
+                const { data: p } = await supabaseClient.from('productos').select('*');
+                const { data: h } = await supabaseClient.from('historial').select('*');
+                
+                productos = p || [];
+                historial = h || [];
+                actualizarPantallas();
+            } catch (e) {
+                console.error("Error al cargar:", e);
+            }
+        }
+
+        async function guardarProducto() {
+            const nombreVal = document.getElementById('p-nombre').value;
+            const precioVal = document.getElementById('p-precio').value;
+            const stockVal = document.getElementById('p-stock').value;
+
+            if (!nombreVal || !precioVal || !stockVal) {
+                alert("Completá nombre, precio y stock.");
+                return;
+            }
+
+            try {
+                // Usamos supabaseClient aquí también
+                const { error } = await supabaseClient.from('productos').insert([
+                    { nombre: nombreVal, precio: parseInt(precioVal), stock: parseInt(stockVal) }
+                ]);
+
+                if (error) throw error;
+
+                alert("¡Producto guardado!");
+                document.getElementById('p-nombre').value = '';
+                document.getElementById('p-precio').value = '';
+                document.getElementById('p-stock').value = '';
+                init(); 
+                volverMenuProductos();
+            } catch (e) {
+                alert("Error al guardar: " + e.message);
+            }
+        }
+
+        // Asegurate de cambiar también en la función finalizarVenta:
+        // Cambia supabase.from por supabaseClient.from en todas las líneas de esa función.
+        
+        init();
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Dancing+Script:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --oshi-gold: #D4AF37; --oshi-black: #1a1a1a; --md-sys-color-primary: #6750a4; --md-sys-color-on-primary: #ffffff; --md-sys-color-primary-container: #eaddff; --md-sys-color-surface: #fef7ff; --md-sys-color-on-surface: #1d1b20; --md-sys-color-surface-variant: #e7e0ec; --md-sys-color-outline: #79747e; --md-sys-color-error: #b3261e; --oshi-input-border: #d1d1d1; }
