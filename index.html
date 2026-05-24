@@ -226,17 +226,43 @@
             init();
         }
 
-        async function guardarProducto() {
-            const p = {
-                nombre: document.getElementById('p-nombre').value,
-                precio: parseInt(document.getElementById('p-precio').value),
-                stock: parseInt(document.getElementById('p-stock').value)
-            };
-            await supabase.from('productos').insert([p]);
-            alert("Producto guardado");
-            init();
-            volverMenuProductos();
-        }
+   async function guardarProducto() {
+            // 1. Recolectamos los datos
+            const nombreVal = document.getElementById('p-nombre').value;
+            const precioVal = document.getElementById('p-precio').value;
+            const stockVal = document.getElementById('p-stock').value;
+
+            // 2. Validación básica
+            if (!nombreVal || !precioVal || !stockVal) {
+                alert("Por favor, completá todos los campos (Nombre, Precio y Stock)");
+                return;
+            }
+
+            try {
+                // 3. Intentamos guardar en Supabase
+                const { error } = await supabase.from('productos').insert([
+                    { 
+                        nombre: nombreVal, 
+                        precio: parseInt(precioVal), 
+                        stock: parseInt(stockVal) 
+                    }
+                ]);
+
+                if (error) {
+                    console.error("Error de Supabase:", error);
+                    alert("Error al guardar: " + error.message);
+                } else {
+                    alert("¡Producto guardado exitosamente!");
+                    // Limpiamos los campos
+                    document.getElementById('p-nombre').value = '';
+                    document.getElementById('p-precio').value = '';
+                    document.getElementById('p-stock').value = '';
+                    init(); // Recargamos la lista
+                    volverMenuProductos();
+                }
+            } catch (e) {
+                alert("Ocurrió un error inesperado: " + e.message);
+            }
 
         // Ejecutar al cargar
         init();
