@@ -33,7 +33,7 @@
 <body>
 
     <header>
-    <img src="logo.png" alt="OSHI HOME Logo" style="max-width: 180px; height: auto;">
+        <img src="logo.png" alt="OSHI HOME Logo" style="max-width: 180px; height: auto;">
     </header>
     <div class="tabs">
         <div class="tab active" onclick="switchTab('ventas', this)">Vender</div>
@@ -45,9 +45,10 @@
     <script>
         const SUPABASE_URL = "https://gudhifoitegxqqxihqoe.supabase.co";
         const SUPABASE_KEY = "sb_publishable_ZSVDO8PMA26pQ7d-rpE0Hg_MX8PJT_E";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Corregido: creamos la instancia como supabaseClient
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     </script>
-<main>
+    <main>
         <div id="view-ventas" class="view active">
             <div class="card">
                 <label>Nombre del Cliente</label>
@@ -122,7 +123,7 @@
             </div>
         </div>
     </main>
-<script>
+    <script>
         // --- VARIABLES GLOBALES ---
         let productos = [];
         let historial = [];
@@ -131,9 +132,9 @@
         // --- INICIALIZACIÓN ---
         async function init() {
             try {
-                // Obtener datos de Supabase
-                const { data: p } = await supabase.from('productos').select('*');
-                const { data: h } = await supabase.from('historial').select('*');
+                // Corregido: usamos supabaseClient
+                const { data: p } = await supabaseClient.from('productos').select('*');
+                const { data: h } = await supabaseClient.from('historial').select('*');
                 
                 productos = p || [];
                 historial = h || [];
@@ -165,12 +166,10 @@
 
         // --- LÓGICA DE VENTAS ---
         function actualizarPantallas() {
-            // Select de Productos
             const sel = document.getElementById('select-producto');
             sel.innerHTML = '<option value="">Elegí un producto...</option>' + 
                             productos.map(p => `<option value="${p.id}">${p.nombre} ($${p.precio})</option>`).join('');
             
-            // Lista Inventario
             const inv = document.getElementById('lista-inventario');
             inv.innerHTML = productos.map(p => `
                 <div class="card">
@@ -209,15 +208,15 @@
                 notas: document.getElementById('notas-pedido').value
             };
 
-            // Guardar en Supabase
-            const { error } = await supabase.from('historial').insert([venta]);
+            // Corregido: usamos supabaseClient
+            const { error } = await supabaseClient.from('historial').insert([venta]);
             if(error) return alert("Error al guardar: " + error.message);
 
-            // Actualizar stock local y en Supabase
             for(let item of carrito) {
                 let p = productos.find(x => x.id == item.id);
                 p.stock -= 1;
-                await supabase.from('productos').update({ stock: p.stock }).eq('id', p.id);
+                // Corregido: usamos supabaseClient
+                await supabaseClient.from('productos').update({ stock: p.stock }).eq('id', p.id);
             }
 
             alert("Venta registrada!");
@@ -226,21 +225,19 @@
             init();
         }
 
-   async function guardarProducto() {
-            // 1. Recolectamos los datos
+        async function guardarProducto() {
             const nombreVal = document.getElementById('p-nombre').value;
             const precioVal = document.getElementById('p-precio').value;
             const stockVal = document.getElementById('p-stock').value;
 
-            // 2. Validación básica
             if (!nombreVal || !precioVal || !stockVal) {
                 alert("Por favor, completá todos los campos (Nombre, Precio y Stock)");
                 return;
             }
 
             try {
-                // 3. Intentamos guardar en Supabase
-                const { error } = await supabase.from('productos').insert([
+                // Corregido: usamos supabaseClient
+                const { error } = await supabaseClient.from('productos').insert([
                     { 
                         nombre: nombreVal, 
                         precio: parseInt(precioVal), 
@@ -253,16 +250,16 @@
                     alert("Error al guardar: " + error.message);
                 } else {
                     alert("¡Producto guardado exitosamente!");
-                    // Limpiamos los campos
                     document.getElementById('p-nombre').value = '';
                     document.getElementById('p-precio').value = '';
                     document.getElementById('p-stock').value = '';
-                    init(); // Recargamos la lista
+                    init(); 
                     volverMenuProductos();
                 }
             } catch (e) {
                 alert("Ocurrió un error inesperado: " + e.message);
             }
+        } // Corregido: llave de cierre añadida
 
         // Ejecutar al cargar
         init();
