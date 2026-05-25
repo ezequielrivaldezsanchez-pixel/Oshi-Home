@@ -3,187 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aromas - OSHI HOME</title>
+    <title>Aromas - OSHI HOME v7</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Dancing+Script:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --oshi-gold: #D4AF37; --oshi-black: #1a1a1a; --md-sys-color-primary: #6750a4; --md-sys-color-on-primary: #ffffff; --md-sys-color-primary-container: #eaddff; --md-sys-color-surface: #fef7ff; --md-sys-color-on-surface: #1d1b20; --md-sys-color-surface-variant: #e7e0ec; --md-sys-color-outline: #79747e; --md-sys-color-error: #b3261e; --oshi-input-border: #d1d1d1; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.1); }
-        header { padding: 24px 20px; background: var(--md-sys-color-surface); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        .tabs { display: flex; padding: 0 10px; border-bottom: 1px solid var(--md-sys-color-surface-variant); background: var(--md-sys-color-surface); flex-wrap: wrap; }
-        .tab { flex: 1; min-width: 20%; padding: 16px 5px; text-align: center; font-size: 13px; font-weight: 600; color: var(--md-sys-color-outline); cursor: pointer; transition: all 0.3s ease; position: relative; }
-        .tab.active { color: var(--md-sys-color-primary); }
-        .tab.active::after { content: ''; position: absolute; bottom: 0; left: 10%; right: 10%; height: 4px; background: var(--md-sys-color-primary); border-radius: 4px 4px 0 0; }
-        main { flex: 1; padding: 24px; padding-bottom: 100px; }
-        .view { display: none; animation: fadeIn 0.4s ease; }
+        :root { --oshi-gold: #D4AF37; --oshi-black: #1a1a1a; --md-sys-color-primary: #6750a4; --md-sys-color-surface: #fef7ff; --md-sys-color-on-surface: #1d1b20; --md-sys-color-surface-variant: #e7e0ec; --md-sys-color-outline: #79747e; --md-sys-color-error: #b3261e; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); max-width: 480px; margin: 0 auto; min-height: 100vh; }
+        /* PIN SEGURIDAD */
+        #pin-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        /* NOTIFICACIONES */
+        #toast-container { position: fixed; top: 20px; width: 100%; z-index: 9999; pointer-events: none; text-align: center; }
+        .toast { padding: 15px; margin: 10px; border-radius: 10px; color: white; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .toast-success { background: #4caf50; }
+        .toast-error { background: #f44336; cursor: pointer; pointer-events: all; }
+        
+        header { padding: 24px; text-align: center; border-bottom: 1px solid var(--md-sys-color-surface-variant); }
+        .tabs { display: flex; border-bottom: 1px solid var(--md-sys-color-surface-variant); }
+        .tab { flex: 1; padding: 15px; text-align: center; font-size: 13px; font-weight: 600; color: var(--md-sys-color-outline); cursor: pointer; }
+        .tab.active { color: var(--md-sys-color-primary); border-bottom: 2px solid var(--md-sys-color-primary); }
+        main { padding: 20px; padding-bottom: 100px; }
+        .view { display: none; }
         .view.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        .card { background: white; border-radius: 28px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--md-sys-color-surface-variant); box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
-        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 16px; border-radius: 16px; border: 1px solid var(--oshi-input-border); font-size: 15px; background: transparent; color: var(--oshi-black); margin-bottom:12px; }
-        .btn { width: 100%; padding: 18px; border-radius: 20px; border: none; font-weight: 700; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; }
-        .btn-primary { background: var(--md-sys-color-primary); color: white; }
-        .btn-danger { background: var(--md-sys-color-error); color: white; padding: 16px; font-size: 15px; border-radius: 20px; border: none; font-weight: 700; margin-top: 10px;}
-        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px dashed var(--md-sys-color-surface-variant); }
-        .badge-stock-low { background: #ffebee; color: #b71c1c; padding: 6px 14px; border-radius: 12px; font-size: 13px; font-weight: 700; }
-        .badge-stock { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-primary); padding: 6px 14px; border-radius: 12px; font-size: 13px; font-weight: 700; }
-        .menu-btn { flex: 1; padding: 20px 10px; border-radius: 24px; border: 1px solid var(--md-sys-color-surface-variant); display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; background: white; }
+        .card { background: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid #e7e0ec; }
+        input, select, textarea { width: 100%; padding: 16px; border-radius: 16px; border: 1px solid #d1d1d1; margin-bottom: 10px; }
+        .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; font-weight: bold; background: var(--md-sys-color-primary); color: white; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <header>
-        <img src="logo.png" alt="OSHI HOME Logo" style="max-width: 180px; height: auto;">
-    </header>
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('ventas', this)">Vender</div>
-        <div class="tab" onclick="switchTab('productos', this)">Productos</div>
-        <div class="tab" onclick="switchTab('historial', this)">Historial</div>
-        <div class="tab" onclick="switchTab('estadisticas', this)">Estadísticas</div>
-        <div class="tab" onclick="switchTab('backup', this)">Backup</div>
+    <div id="pin-overlay">
+        <h2>OSHI HOME</h2>
+        <input type="password" id="pin-input" placeholder="Ingrese PIN" style="width: 200px;">
+        <button class="btn" style="width: 200px;" onclick="verificarPin()">Acceder</button>
     </div>
-    <script>
-        const SUPABASE_URL = "https://gudhifoitegxqqxihqoe.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_ZSVDO8PMA26pQ7d-rpE0Hg_MX8PJT_E";
-        // Corregido: creamos la instancia como supabaseClient
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    </script>
-    <main>
+
+    <div id="toast-container"></div>
+
+    <header>
+        <img src="logo.png" alt="OSHI HOME Logo" style="max-width: 150px;">
+    </header>
+<main>
         <div id="view-ventas" class="view active">
             <div class="card">
                 <label>Nombre del Cliente</label>
-                <input type="text" id="cliente-nombre" list="clientes-guardados" placeholder="Ej: Maria Gomez">
-                <datalist id="clientes-guardados"></datalist>
+                <input type="text" id="cliente-nombre" placeholder="Nombre...">
                 <label>Seleccionar Producto</label>
-                <select id="select-producto"><option value="">Elegí un producto...</option></select>
+                <select id="select-producto"><option value="">Cargando...</option></select>
+                <label>Cantidad</label>
+                <input type="number" id="cantidad-producto" value="1" min="1">
                 <button type="button" class="btn btn-primary" onclick="agregarAlPedido()">+ Agregar al pedido</button>
             </div>
             <div id="resumen-actual" style="display:none;">
                 <h3 style="font-size:17px; margin-bottom:12px;">Detalle del Pedido</h3>
                 <div class="card" id="lista-pedido"></div>
-                <textarea id="notas-pedido" placeholder="Notas de entrega o dedicatoria (Opcional)" style="min-height: 60px; margin-bottom: 15px; font-family: 'Plus Jakarta Sans', sans-serif;"></textarea>
-                <div class="card" style="background: var(--md-sys-color-primary-container);"><div style="display:flex; justify-content:space-between; font-weight:700; font-size:20px;"><span>TOTAL:</span><span id="total-pedido">$0</span></div></div>
+                <textarea id="notas-pedido" placeholder="Notas / Dedicatoria"></textarea>
+                <div class="card" style="background: var(--md-sys-color-primary-container);">
+                    <div style="display:flex; justify-content:space-between; font-weight:700; font-size:20px;">
+                        <span>TOTAL:</span><span id="total-pedido">$0</span>
+                    </div>
+                </div>
                 <button type="button" class="btn btn-primary" onclick="finalizarVenta(true)">Finalizar y WhatsApp</button>
-                <button type="button" class="btn btn-primary" style="margin-top:10px; background:transparent; border:1px solid var(--md-sys-color-primary); color:var(--md-sys-color-primary);" onclick="finalizarVenta(false)">Solo Registrar</button>
             </div>
         </div>
 
         <div id="view-productos" class="view">
-            <div id="pantalla-error-brutal"></div>
             <div id="prod-menu-main">
-                <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                    <div class="menu-btn" onclick="mostrarSubVista('nuevo')"><span>➕</span><span>CARGAR NUEVO</span></div>
-                    <div class="menu-btn" onclick="mostrarSubVista('sincronizar')"><span>🔄</span><span>IMPORTAR</span></div>
-                </div>
-                <h3 style="margin-bottom:15px; font-size:17px;">Inventario Actual</h3>
-                <input type="text" id="buscar-producto" placeholder="🔍 Filtrar rápido..." oninput="actualizarPantallas()">
-                <div id="lista-inventario"></div>
-            </div>
-            <div id="prod-sub-nuevo" style="display: none;">
-                <button class="btn" style="width: auto; padding: 10px;" onclick="volverMenuProductos()">⬅ Volver</button>
                 <div class="card">
                     <h3 id="form-producto-title">Añadir Producto</h3>
-                    <input type="text" id="p-nombre" placeholder="Producto">
+                    <input type="hidden" id="p-id">
+                    <input type="text" id="p-nombre" placeholder="Nombre Producto">
                     <input type="number" id="p-precio" placeholder="Precio ($)">
                     <input type="number" id="p-stock" placeholder="Stock">
-                    <button class="btn btn-primary" onclick="guardarProducto()">Guardar</button>
+                    <div id="form-buttons-añadir">
+                        <button class="btn btn-primary" onclick="guardarProducto()">Guardar Producto</button>
+                    </div>
+                    <div id="form-buttons-editar" style="display:none;">
+                        <button class="btn" style="background:var(--md-sys-color-primary);" onclick="actualizarProducto()">Confirmar Edición</button>
+                        <button class="btn" style="background:#79747e; margin-top:10px;" onclick="limpiarFormularioProducto()">Cancelar</button>
+                    </div>
                 </div>
-            </div>
-            <div id="prod-sub-sincronizar" style="display: none;">
-                <button class="btn" style="width: auto; padding: 10px;" onclick="volverMenuProductos()">⬅ Volver</button>
-                <div class="card">
-                    <h3>Sincronización</h3>
-                    <textarea id="texto-importacion" placeholder="Pegar datos de Excel aquí..."></textarea>
-                    <button class="btn btn-primary" onclick="importarFuerzaBruta()">✅ FORZAR IMPORTACIÓN</button>
-                </div>
+                <input type="text" id="buscar-producto" placeholder="🔍 Buscar producto..." oninput="actualizarPantallas()">
+                <div id="lista-inventario"></div>
             </div>
         </div>
 
         <div id="view-historial" class="view">
             <h3 style="margin-bottom:15px;">Ventas Realizadas</h3>
-            <div class="card">
-                <input type="text" id="buscar-historial" placeholder="🔍 Buscar cliente..." oninput="renderizarHistorial()">
-                <select id="filtro-mes-historial" onchange="renderizarHistorial()"></select>
-            </div>
             <div id="lista-historial"></div>
         </div>
 
         <div id="view-estadisticas" class="view">
             <div class="card"><h3>Ingresos Totales</h3><h1 id="est-total-ingresos">$0</h1></div>
-            <div class="card"><h3>Producto Estrella</h3><div id="est-top-producto">-</div></div>
+            <div class="card"><h3>Producto Estrella</h3><div id="est-top-producto">-</div><div id="est-top-producto-cantidad"></div></div>
         </div>
 
         <div id="view-backup" class="view">
             <div class="card">
                 <h3>Copia de Seguridad</h3>
-                <button class="btn btn-primary" onclick="hacerBackupGeneral()">GENERAR RESPALDO</button>
+                <button class="btn" onclick="hacerBackupGeneral()">GENERAR RESPALDO</button>
                 <hr style="margin: 20px 0;">
                 <textarea id="texto-backup-import" placeholder="Pegá el código de backup aquí..."></textarea>
                 <button class="btn btn-danger" onclick="cargarBackupGeneral()">CARGAR RESPALDO</button>
             </div>
         </div>
     </main>
-    <script>
-        // --- VARIABLES GLOBALES ---
+<script>
+        // --- CONFIGURACIÓN ---
+        const SUPABASE_URL = "https://gudhifoitegxqqxihqoe.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_ZSVDO8PMA26pQ7d-rpE0Hg_MX8PJT_E";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let productos = [];
         let historial = [];
         let carrito = [];
 
-        // --- INICIALIZACIÓN ---
-        async function init() {
-            try {
-                // Corregido: usamos supabaseClient
-                const { data: p } = await supabaseClient.from('productos').select('*');
-                const { data: h } = await supabaseClient.from('historial').select('*');
-                
-                productos = p || [];
-                historial = h || [];
-                
-                actualizarPantallas();
-            } catch (e) {
-                console.error("Error al cargar:", e);
+        // --- SEGURIDAD Y NOTIFICACIONES ---
+        function verificarPin() {
+            if (document.getElementById('pin-input').value === "1502") {
+                document.getElementById('pin-overlay').style.display = 'none';
+                init();
+            } else {
+                alert("PIN incorrecto");
             }
         }
 
-        // --- LÓGICA DE NAVEGACIÓN ---
-        function switchTab(tab, el) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('view-' + tab).classList.add('active');
-            el.classList.add('active');
+        function showToast(msg, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type === 'error' ? 'toast-error' : 'toast-success'}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            if (type !== 'error') setTimeout(() => toast.remove(), 1500);
+            else toast.onclick = () => toast.remove();
         }
 
-        function mostrarSubVista(vista) {
-            document.getElementById('prod-menu-main').style.display = 'none';
-            document.getElementById('prod-sub-' + vista).style.display = 'block';
-        }
-
-        function volverMenuProductos() {
-            document.getElementById('prod-menu-main').style.display = 'block';
-            document.getElementById('prod-sub-nuevo').style.display = 'none';
-            document.getElementById('prod-sub-sincronizar').style.display = 'none';
+        // --- INICIALIZACIÓN ---
+        async function init() {
+            try {
+                const { data: p } = await supabaseClient.from('productos').select('*');
+                const { data: h } = await supabaseClient.from('historial').select('*');
+                productos = p || [];
+                historial = h || [];
+                actualizarPantallas();
+                renderizarEstadisticas();
+            } catch (e) { showToast("Error al conectar: " + e.message, 'error'); }
         }
 
         // --- LÓGICA DE VENTAS ---
-        function actualizarPantallas() {
-            const sel = document.getElementById('select-producto');
-            sel.innerHTML = '<option value="">Elegí un producto...</option>' + 
-                            productos.map(p => `<option value="${p.id}">${p.nombre} ($${p.precio})</option>`).join('');
-            
-            const inv = document.getElementById('lista-inventario');
-            inv.innerHTML = productos.map(p => `
-                <div class="card">
-                    <strong>${p.nombre}</strong><br>
-                    Precio: $${p.precio} | Stock: ${p.stock}
-                </div>`).join('');
-        }
-
-        async function agregarAlPedido() {
+        function agregarAlPedido() {
             const id = document.getElementById('select-producto').value;
+            const cant = parseInt(document.getElementById('cantidad-producto').value);
             const p = productos.find(x => x.id == id);
-            if(!p) return alert("Seleccioná un producto");
+            if(!p) return showToast("Seleccioná un producto", 'error');
+            if(p.stock < cant) return showToast("Stock insuficiente", 'error');
             
-            carrito.push({...p, cantidad: 1});
+            carrito.push({...p, cantidad: cant});
             document.getElementById('resumen-actual').style.display = 'block';
             renderizarCarrito();
         }
@@ -191,11 +166,9 @@
         function renderizarCarrito() {
             const lista = document.getElementById('lista-pedido');
             lista.innerHTML = carrito.map((item, index) => `
-                <div class="list-item">
-                    <span>${item.nombre}</span>
-                    <span>$${item.precio}</span>
-                </div>`).join('');
-            let total = carrito.reduce((sum, item) => sum + item.precio, 0);
+                <div class="list-item"><span>${item.cantidad}x ${item.nombre}</span><span>$${item.precio * item.cantidad}</span></div>
+            `).join('');
+            let total = carrito.reduce((s, i) => s + (i.precio * i.cantidad), 0);
             document.getElementById('total-pedido').innerText = '$' + total;
         }
 
@@ -203,66 +176,71 @@
             const venta = {
                 cliente: document.getElementById('cliente-nombre').value || "Cliente",
                 items: carrito,
-                total: carrito.reduce((s, i) => s + i.precio, 0),
+                total: carrito.reduce((s, i) => s + (i.precio * i.cantidad), 0),
                 fecha: new Date().toISOString(),
                 notas: document.getElementById('notas-pedido').value
             };
 
-            // Corregido: usamos supabaseClient
-            const { error } = await supabaseClient.from('historial').insert([venta]);
-            if(error) return alert("Error al guardar: " + error.message);
+            try {
+                const { error } = await supabaseClient.from('historial').insert([venta]);
+                if(error) throw error;
 
-            for(let item of carrito) {
-                let p = productos.find(x => x.id == item.id);
-                p.stock -= 1;
-                // Corregido: usamos supabaseClient
-                await supabaseClient.from('productos').update({ stock: p.stock }).eq('id', p.id);
-            }
+                for(let item of carrito) {
+                    let p = productos.find(x => x.id == item.id);
+                    await supabaseClient.from('productos').update({ stock: p.stock - item.cantidad }).eq('id', p.id);
+                }
 
-            alert("Venta registrada!");
-            carrito = [];
-            document.getElementById('resumen-actual').style.display = 'none';
+                if(enviarWhatsApp) {
+                    let msg = `Pedido para ${venta.cliente}: ` + carrito.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
+                    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                }
+
+                showToast("Venta finalizada exitosamente", 'success');
+                carrito = [];
+                document.getElementById('resumen-actual').style.display = 'none';
+                init();
+            } catch(e) { showToast("Error: " + e.message, 'error'); }
+        }
+
+        // --- GESTIÓN PRODUCTOS ---
+        async function guardarProducto() {
+            const nombre = document.getElementById('p-nombre').value;
+            const precio = parseInt(document.getElementById('p-precio').value);
+            const stock = parseInt(document.getElementById('p-stock').value);
+            const { error } = await supabaseClient.from('productos').insert([{ nombre, precio, stock }]);
+            if(error) showToast("Error: " + error.message, 'error');
+            else { showToast("Producto guardado", 'success'); init(); }
+        }
+
+        async function eliminarProducto(id) {
+            if(!confirm("¿Borrar producto?")) return;
+            await supabaseClient.from('productos').delete().eq('id', id);
             init();
         }
 
-        async function guardarProducto() {
-            const nombreVal = document.getElementById('p-nombre').value;
-            const precioVal = document.getElementById('p-precio').value;
-            const stockVal = document.getElementById('p-stock').value;
+        function actualizarPantallas() {
+            const sel = document.getElementById('select-producto');
+            sel.innerHTML = '<option value="">Elegí un producto...</option>' + 
+                            productos.map(p => `<option value="${p.id}">${p.nombre} ($${p.precio})</option>`).join('');
+            
+            document.getElementById('lista-inventario').innerHTML = productos.map(p => `
+                <div class="card">
+                    <strong>${p.nombre}</strong><br>Precio: $${p.precio} | Stock: ${p.stock}
+                    <button class="btn" style="background:#b3261e; margin-top:5px;" onclick="eliminarProducto('${p.id}')">Eliminar</button>
+                </div>`).join('');
+        }
 
-            if (!nombreVal || !precioVal || !stockVal) {
-                alert("Por favor, completá todos los campos (Nombre, Precio y Stock)");
-                return;
-            }
-
-            try {
-                // Corregido: usamos supabaseClient
-                const { error } = await supabaseClient.from('productos').insert([
-                    { 
-                        nombre: nombreVal, 
-                        precio: parseInt(precioVal), 
-                        stock: parseInt(stockVal) 
-                    }
-                ]);
-
-                if (error) {
-                    console.error("Error de Supabase:", error);
-                    alert("Error al guardar: " + error.message);
-                } else {
-                    alert("¡Producto guardado exitosamente!");
-                    document.getElementById('p-nombre').value = '';
-                    document.getElementById('p-precio').value = '';
-                    document.getElementById('p-stock').value = '';
-                    init(); 
-                    volverMenuProductos();
-                }
-            } catch (e) {
-                alert("Ocurrió un error inesperado: " + e.message);
-            }
-        } // Corregido: llave de cierre añadida
-
-        // Ejecutar al cargar
-        init();
+        function renderizarEstadisticas() {
+            let total = historial.reduce((acc, h) => acc + h.total, 0);
+            document.getElementById('est-total-ingresos').innerText = `$${total}`;
+        }
+        
+        function switchTab(tab, el) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('view-' + tab).classList.add('active');
+            el.classList.add('active');
+        }
     </script>
 </body>
 </html>
