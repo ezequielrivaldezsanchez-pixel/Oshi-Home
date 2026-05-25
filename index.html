@@ -1,3 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSHI HOME - V7.3</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --md-sys-color-primary: #6750a4; --md-sys-color-surface: #fef7ff; --md-sys-color-on-surface: #1d1b20; --md-sys-color-error: #b3261e; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); max-width: 480px; margin: 0 auto; min-height: 100vh; }
+        #pin-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        #toast-container { position: fixed; top: 20px; width: 100%; z-index: 9999; pointer-events: none; text-align: center; }
+        .toast { padding: 15px 25px; margin: 10px; border-radius: 12px; color: white; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; pointer-events: all; }
+        .toast-success { background: #4caf50; }
+        .toast-error { background: var(--md-sys-color-error); }
+        header { padding: 24px; text-align: center; border-bottom: 1px solid #e7e0ec; }
+        .tabs { display: flex; border-bottom: 1px solid #e7e0ec; position: sticky; top: 0; z-index: 90; background: white; }
+        .tab { flex: 1; padding: 15px; text-align: center; font-size: 13px; font-weight: 600; color: #79747e; cursor: pointer; }
+        .tab.active { color: var(--md-sys-color-primary); border-bottom: 2px solid var(--md-sys-color-primary); }
+        main { padding: 20px; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .card { background: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid #e7e0ec; }
+        input, select, textarea { width: 100%; padding: 16px; border-radius: 16px; border: 1px solid #d1d1d1; margin-bottom: 10px; }
+        .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; font-weight: bold; background: var(--md-sys-color-primary); color: white; cursor: pointer; margin-top: 5px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #e7e0ec; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="pin-overlay">
+        <img src="logo.png" alt="OSHI HOME" style="max-width: 180px; margin-bottom: 20px;">
+        <input type="password" id="pin-input" placeholder="PIN" style="width: 200px; text-align: center;">
+        <p style="margin-bottom: 20px; color: #79747e; font-size: 14px;">Ingresá el pin de seguridad para acceder a la app</p>
+        <button class="btn" style="width: 200px;" onclick="verificarPin()">Acceder</button>
+    </div>
+    <div id="toast-container"></div>
+    <header>
+        <img src="logo.png" alt="Logo" style="max-width: 150px;">
+    </header>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('ventas', this)">Vender</div>
+        <div class="tab" onclick="switchTab('productos', this)">Productos</div>
+        <div class="tab" onclick="switchTab('historial', this)">Historial</div>
+        <div class="tab" onclick="switchTab('estadisticas', this)">Stats</div>
+        <div class="tab" onclick="switchTab('backup', this)">Backup</div>
+    </div>
+
+
+
+
+<main>
+        <div id="view-ventas" class="view active">
+            <div class="card">
+                <input type="text" id="cliente-nombre" placeholder="Nombre Cliente">
+                <select id="select-producto"><option value="">Cargando...</option></select>
+                <div style="display:flex; gap:10px;">
+                    <input type="number" id="cantidad-producto" value="1" min="1" placeholder="Cant.">
+                    <button class="btn" style="margin-top:0;" onclick="agregarAlPedido()">+ Agregar</button>
+                </div>
+            </div>
+            <div id="resumen-actual" style="display:none;">
+                <div class="card" id="lista-pedido"></div>
+                <textarea id="notas-pedido" placeholder="Notas / Dedicatoria"></textarea>
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; font-weight:700; font-size:20px;">
+                        <span>TOTAL:</span><span id="total-pedido">$0</span>
+                    </div>
+                </div>
+                <button class="btn" style="background:#25D366;" onclick="finalizarVenta(true)">Enviar Factura WhatsApp</button>
+                <button class="btn" style="background:#79747e;" onclick="finalizarVenta(false)">Solo Registrar</button>
+            </div>
+        </div>
+
+        <div id="view-productos" class="view">
+            <div class="card">
+                <h3 id="form-producto-title">Añadir Producto</h3>
+                <input type="hidden" id="p-id">
+                <input type="text" id="p-nombre" placeholder="Nombre Producto">
+                <input type="number" id="p-precio" placeholder="Precio ($)">
+                <input type="number" id="p-stock" placeholder="Stock">
+                <div id="form-buttons-añadir"><button class="btn" onclick="guardarProducto()">Guardar Producto</button></div>
+                <div id="form-buttons-editar" style="display:none;">
+                    <button class="btn" onclick="actualizarProducto()">Confirmar Edición</button>
+                    <button class="btn" style="background:#79747e; margin-top:10px;" onclick="limpiarFormularioProducto()">Cancelar</button>
+                </div>
+            </div>
+            <div id="lista-inventario"></div>
+        </div>
+
+        <div id="view-historial" class="view">
+            <button class="btn" style="background:var(--md-sys-color-error); margin-bottom:15px;" onclick="borrarHistorialCompleto()">🗑 Borrar Todo el Historial</button>
+            <div id="lista-historial"></div>
+        </div>
+
+        <div id="view-estadisticas" class="view">
+            <div class="card"><h3>Ingresos Totales</h3><h1 id="est-total-ingresos">$0</h1></div>
+        </div>
+
+        <div id="view-backup" class="view">
+            <div class="card">
+                <h3>Backup</h3>
+                <button class="btn" onclick="hacerBackupGeneral()">Descargar Backup</button>
+            </div>
+        </div>
+    </main>
+
+
+
+
 <script>
         const SUPABASE_URL = "https://gudhifoitegxqqxihqoe.supabase.co";
         const SUPABASE_KEY = "sb_publishable_ZSVDO8PMA26pQ7d-rpE0Hg_MX8PJT_E";
@@ -160,17 +271,41 @@
         }
 
         // --- HISTORIAL ---
+  
         async function eliminarVenta(id) {
-            await supabaseClient.from('historial').delete().eq('id', id);
-            init();
+            // Convertimos el ID a número por seguridad si es necesario
+            const idVenta = parseInt(id); 
+            
+            const { error } = await supabaseClient
+                .from('historial')
+                .delete()
+                .eq('id', idVenta);
+
+            if (error) {
+                console.error("Error al borrar:", error);
+                showToast("Error al borrar: " + error.message, true);
+            } else {
+                showToast("Venta eliminada correctamente");
+                await init(); // Forzamos recarga total para ver cambios
+            }
         }
 
         async function borrarHistorialCompleto() {
-            if(!confirm("¿Borrar TODO el historial?")) return;
-            // Para borrar todo, filtramos por id mayor a 0 (truco de Supabase)
-            await supabaseClient.from('historial').delete().gt('id', 0);
-            init();
-        }
+            if(!confirm("¿Estás seguro de borrar TODO el historial de ventas? Esta acción es irreversible.")) return;
+
+            // Usamos una lógica de borrado masivo segura
+            const { error } = await supabaseClient
+                .from('historial')
+                .delete()
+                .neq('id', 0); // Borra todo registro cuyo ID no sea 0
+
+            if (error) {
+                console.error("Error al borrar todo:", error);
+                showToast("Error al borrar historial: " + error.message, true);
+            } else {
+                showToast("Historial borrado completamente");
+                await init(); // Forzamos recarga
+            }
 
         function renderizarHistorial() {
             document.getElementById('lista-historial').innerHTML = historial.map(h => `
