@@ -53,47 +53,42 @@
 <main>
         <div id="view-ventas" class="view active">
             <div class="card">
-                <label>Nombre del Cliente</label>
-                <input type="text" id="cliente-nombre" placeholder="Nombre...">
-                <label>Seleccionar Producto</label>
+                <input type="text" id="cliente-nombre" placeholder="Nombre Cliente">
                 <select id="select-producto"><option value="">Cargando...</option></select>
-                <label>Cantidad</label>
-                <input type="number" id="cantidad-producto" value="1" min="1">
-                <button type="button" class="btn" onclick="agregarAlPedido()">+ Agregar al pedido</button>
+                <input type="number" id="cantidad-producto" value="1" min="1" placeholder="Cant.">
+                <button class="btn" onclick="agregarAlPedido()">+ Agregar al pedido</button>
             </div>
-            <div id="resumen-actual" class="card" style="display:none;">
-                <h3 style="margin-bottom:12px;">Detalle del Pedido</h3>
-                <div id="lista-pedido"></div>
-                <textarea id="notas-pedido" placeholder="Notas/Dedicatoria" style="margin-top:10px;"></textarea>
-                <h3 id="total-pedido" style="margin:10px 0;">Total: $0</h3>
-                <button type="button" class="btn" style="background:#25D366;" onclick="finalizarVenta(true)">Enviar por WhatsApp</button>
-                <button type="button" class="btn" style="background:var(--md-sys-color-primary);" onclick="finalizarVenta(false)">Solo Registrar</button>
+            <div id="resumen-actual" style="display:none;">
+                <div class="card" id="lista-pedido"></div>
+                <textarea id="notas-pedido" placeholder="Notas / Dedicatoria"></textarea>
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; font-weight:700; font-size:20px;">
+                        <span>TOTAL:</span><span id="total-pedido">$0</span>
+                    </div>
+                </div>
+                <button class="btn" style="background:#25D366;" onclick="finalizarVenta(true)">Enviar Factura WhatsApp</button>
+                <button class="btn" style="background:#79747e;" onclick="finalizarVenta(false)">Solo Registrar</button>
             </div>
         </div>
 
         <div id="view-productos" class="view">
             <div class="card">
                 <h3 id="form-producto-title">Añadir Producto</h3>
+                <input type="hidden" id="p-id">
                 <input type="text" id="p-nombre" placeholder="Nombre Producto">
                 <input type="number" id="p-precio" placeholder="Precio ($)">
                 <input type="number" id="p-stock" placeholder="Stock">
-                <div id="form-buttons-añadir">
-                    <button class="btn" onclick="guardarProducto()">Guardar Producto</button>
-                </div>
+                <div id="form-buttons-añadir"><button class="btn" onclick="guardarProducto()">Guardar Producto</button></div>
                 <div id="form-buttons-editar" style="display:none;">
-                    <button class="btn" onclick="guardarProducto()">Confirmar Edición</button>
+                    <button class="btn" onclick="actualizarProducto()">Confirmar Edición</button>
                     <button class="btn" style="background:#79747e; margin-top:10px;" onclick="limpiarFormularioProducto()">Cancelar</button>
                 </div>
             </div>
-            <input type="text" id="buscar-producto" placeholder="🔍 Filtrar productos..." oninput="actualizarPantallas()">
             <div id="lista-inventario"></div>
         </div>
 
         <div id="view-historial" class="view">
-            <div class="card">
-                <h3>Ventas Realizadas</h3>
-                <button class="btn" style="background:#b3261e;" onclick="borrarTodoHistorial()">BORRAR TODO EL HISTORIAL</button>
-            </div>
+            <button class="btn" style="background:var(--md-sys-color-error); margin-bottom:15px;" onclick="borrarHistorialCompleto()">🗑 Borrar Todo el Historial</button>
             <div id="lista-historial"></div>
         </div>
 
@@ -103,16 +98,11 @@
 
         <div id="view-backup" class="view">
             <div class="card">
-                <h3>Copia de Seguridad</h3>
-                <button class="btn" onclick="hacerBackupGeneral()">GENERAR RESPALDO</button>
-                <hr style="margin: 20px 0;">
-                <textarea id="texto-backup-import" placeholder="Pegá el código de backup aquí..."></textarea>
-                <button class="btn" style="background:var(--md-sys-color-error);" onclick="cargarBackupGeneral()">CARGAR RESPALDO</button>
+                <h3>Backup</h3>
+                <button class="btn" onclick="hacerBackupGeneral()">Descargar Backup</button>
             </div>
         </div>
     </main>
-
-
 
 
 
@@ -128,28 +118,25 @@
         let carrito = [];
         let editingId = null;
 
-        // --- SEGURIDAD ---
+        // --- SEGURIDAD Y NOTIFICACIONES ---
         function verificarPin() {
             if (document.getElementById('pin-input').value === "1502") {
                 document.getElementById('pin-overlay').style.display = 'none';
                 init();
-            } else {
-                alert("PIN incorrecto");
-            }
+            } else { alert("PIN incorrecto"); }
         }
 
-        // --- NOTIFICACIONES ---
         function showToast(msg, isError = false) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${isError ? 'toast-error' : 'toast-success'}`;
             toast.innerText = msg;
-            toast.onclick = () => toast.remove();
             container.appendChild(toast);
             if (!isError) setTimeout(() => toast.remove(), 1500);
+            else toast.onclick = () => toast.remove();
         }
 
-        // --- LÓGICA PRINCIPAL ---
+        // --- INICIALIZACIÓN ---
         async function init() {
             try {
                 const { data: p } = await supabaseClient.from('productos').select('*');
@@ -159,7 +146,7 @@
                 actualizarPantallas();
                 renderizarHistorial();
                 renderizarEstadisticas();
-            } catch (e) { showToast("Error de conexión: " + e.message, true); }
+            } catch (e) { showToast("Error al conectar: " + e.message, true); }
         }
 
         // --- VENTAS ---
@@ -169,14 +156,11 @@
             const p = productos.find(x => x.id == id);
             if(!p) return showToast("Seleccioná un producto", true);
             
-            const enCarrito = carrito.find(x => x.id == id);
-            const cantidadTotalEnCarrito = enCarrito ? enCarrito.cantidad + cant : cant;
+            // Verificamos stock en carrito vs real
+            const enCarrito = carrito.filter(x => x.id == p.id).reduce((s, i) => s + i.cantidad, 0);
+            if((p.stock - enCarrito) < cant) return showToast("Stock insuficiente", true);
             
-            if(cantidadTotalEnCarrito > p.stock) return showToast("Stock insuficiente", true);
-            
-            if(enCarrito) enCarrito.cantidad += cant;
-            else carrito.push({...p, cantidad: cant});
-            
+            carrito.push({...p, cantidad: cant});
             document.getElementById('resumen-actual').style.display = 'block';
             renderizarCarrito();
         }
@@ -187,17 +171,11 @@
                 <div class="list-item">
                     <span>${item.cantidad}x ${item.nombre}</span>
                     <span>$${item.precio * item.cantidad}</span>
-                    <button class="btn" style="width:auto; padding:5px; background:#b3261e;" onclick="eliminarDelCarrito(${index})">X</button>
+                    <button class="btn" style="width:40px; margin:0;" onclick="carrito.splice(${index},1); renderizarCarrito();">X</button>
                 </div>
             `).join('');
             let total = carrito.reduce((s, i) => s + (i.precio * i.cantidad), 0);
             document.getElementById('total-pedido').innerText = '$' + total;
-        }
-
-        function eliminarDelCarrito(index) {
-            carrito.splice(index, 1);
-            renderizarCarrito();
-            if(carrito.length === 0) document.getElementById('resumen-actual').style.display = 'none';
         }
 
         async function finalizarVenta(enviarWhatsApp) {
@@ -212,25 +190,22 @@
             try {
                 const { error } = await supabaseClient.from('historial').insert([venta]);
                 if(error) throw error;
-
                 for(let item of carrito) {
                     let p = productos.find(x => x.id == item.id);
                     await supabaseClient.from('productos').update({ stock: p.stock - item.cantidad }).eq('id', p.id);
                 }
-
-                if(enviarWhatsApp) enviarFacturaWpp(venta);
-                
-                showToast("Venta registrada con éxito");
+                if(enviarWhatsApp) enviarFacturaWhatsApp(venta);
+                showToast("Venta registrada");
                 carrito = [];
                 document.getElementById('resumen-actual').style.display = 'none';
                 init();
-            } catch(e) { showToast("Error al registrar: " + e.message, true); }
+            } catch(e) { showToast("Error: " + e.message, true); }
         }
 
-        function enviarFacturaWpp(v) {
-            let msg = `🛍️ *Pedido OSHI HOME*\nCliente: ${v.cliente}\n\n`;
-            v.items.forEach(i => msg += `• ${i.cantidad}x ${i.nombre} ($${i.precio})\n`);
-            msg += `\n*Total: $${v.total}*\n\n¡Gracias por tu compra!`;
+        function enviarFacturaWhatsApp(v) {
+            let msg = `*OSHI HOME - Factura*\nFecha: ${new Date(v.fecha).toLocaleDateString()}\nCliente: ${v.cliente}\n\n`;
+            msg += v.items.map(i => `${i.cantidad}x ${i.nombre} ($${i.precio})`).join('\n');
+            msg += `\n\n*TOTAL: $${v.total}*`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
@@ -239,17 +214,17 @@
             const nombre = document.getElementById('p-nombre').value;
             const precio = parseInt(document.getElementById('p-precio').value);
             const stock = parseInt(document.getElementById('p-stock').value);
-            
-            if(editingId) {
-                await supabaseClient.from('productos').update({ nombre, precio, stock }).eq('id', editingId);
-                showToast("Producto actualizado");
-                editingId = null;
-            } else {
-                await supabaseClient.from('productos').insert([{ nombre, precio, stock }]);
-                showToast("Producto guardado");
-            }
-            limpiarFormularioProducto();
-            init();
+            const { error } = await supabaseClient.from('productos').insert([{ nombre, precio, stock }]);
+            if(error) showToast("Error", true); else { showToast("Guardado"); init(); }
+        }
+
+        async function actualizarProducto() {
+            const { error } = await supabaseClient.from('productos').update({ 
+                nombre: document.getElementById('p-nombre').value,
+                precio: parseInt(document.getElementById('p-precio').value),
+                stock: parseInt(document.getElementById('p-stock').value)
+            }).eq('id', editingId);
+            if(error) showToast("Error", true); else { showToast("Actualizado"); limpiarFormularioProducto(); init(); }
         }
 
         function editarProducto(id) {
@@ -264,57 +239,56 @@
         }
 
         async function eliminarProducto(id) {
-            if(!confirm("¿Eliminar producto?")) return;
+            if(!confirm("¿Borrar producto?")) return;
             await supabaseClient.from('productos').delete().eq('id', id);
             init();
         }
 
         function limpiarFormularioProducto() {
+            editingId = null;
             document.getElementById('p-nombre').value = '';
             document.getElementById('p-precio').value = '';
             document.getElementById('p-stock').value = '';
-            editingId = null;
             document.getElementById('form-producto-title').innerText = "Añadir Producto";
             document.getElementById('form-buttons-añadir').style.display = 'block';
             document.getElementById('form-buttons-editar').style.display = 'none';
-        }
-
-        function actualizarPantallas() {
-            const sel = document.getElementById('select-producto');
-            sel.innerHTML = '<option value="">Elegí un producto...</option>' + 
-                            productos.map(p => `<option value="${p.id}">${p.nombre} ($${p.precio})</option>`).join('');
-            document.getElementById('lista-inventario').innerHTML = productos.map(p => `
-                <div class="card">
-                    <strong>${p.nombre}</strong><br>Precio: $${p.precio} | Stock: ${p.stock}
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <button class="btn" style="background:var(--md-sys-color-primary);" onclick="editarProducto('${p.id}')">Editar</button>
-                        <button class="btn" style="background:#b3261e;" onclick="eliminarProducto('${p.id}')">Borrar</button>
-                    </div>
-                </div>`).join('');
         }
 
         // --- HISTORIAL ---
         function renderizarHistorial() {
             document.getElementById('lista-historial').innerHTML = historial.map(h => `
                 <div class="card">
-                    <strong>${h.cliente}</strong> ($${h.total})<br>
-                    <small>${new Date(h.fecha).toLocaleDateString()}</small><br>
-                    <button class="btn" onclick="enviarFacturaWpp(${JSON.stringify(h).replace(/"/g, '&quot;')})">WhatsApp</button>
-                    <button class="btn" style="background:#b3261e;" onclick="borrarVenta('${h.id}')">Eliminar Venta</button>
+                    <strong>${h.cliente}</strong> (${new Date(h.fecha).toLocaleDateString()})<br>Total: $${h.total}
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button class="btn" onclick="enviarFacturaWhatsApp(${JSON.stringify(h).replace(/"/g, '&quot;')})">Enviar Factura</button>
+                        <button class="btn" style="background:#b3261e;" onclick="borrarVenta('${h.id}')">Borrar</button>
+                    </div>
                 </div>
             `).join('');
         }
 
         async function borrarVenta(id) {
-            if(!confirm("¿Eliminar esta venta?")) return;
             await supabaseClient.from('historial').delete().eq('id', id);
             init();
         }
 
-        async function borrarTodoHistorial() {
-            if(!confirm("¿Seguro que querés borrar TODO el historial?")) return;
-            for(let h of historial) await supabaseClient.from('historial').delete().eq('id', h.id);
+        async function borrarHistorialCompleto() {
+            if(!confirm("¿BORRAR TODO EL HISTORIAL?")) return;
+            await supabaseClient.from('historial').delete().neq('id', '0');
             init();
+        }
+
+        // --- EXTRAS ---
+        function actualizarPantallas() {
+            const sel = document.getElementById('select-producto');
+            sel.innerHTML = '<option value="">Elegí un producto...</option>' + productos.map(p => `<option value="${p.id}">${p.nombre} ($${p.precio})</option>`).join('');
+            document.getElementById('lista-inventario').innerHTML = productos.map(p => `
+                <div class="card"><strong>${p.nombre}</strong><br>Precio: $${p.precio} | Stock: ${p.stock}
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button class="btn" onclick="editarProducto('${p.id}')">Editar</button>
+                        <button class="btn" style="background:#b3261e;" onclick="eliminarProducto('${p.id}')">Borrar</button>
+                    </div>
+                </div>`).join('');
         }
 
         function renderizarEstadisticas() {
@@ -327,6 +301,14 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById('view-' + tab).classList.add('active');
             el.classList.add('active');
+        }
+
+        function hacerBackupGeneral() {
+            const data = JSON.stringify({productos, historial});
+            const blob = new Blob([data], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'backup_oshi.json'; a.click();
         }
     </script>
 </body>
