@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aromas - OSHI HOME v7</title>
+    <title>OSHI HOME - V7</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Dancing+Script:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --oshi-gold: #D4AF37; --oshi-black: #1a1a1a; --md-sys-color-primary: #6750a4; --md-sys-color-surface: #fef7ff; --md-sys-color-on-surface: #1d1b20; --md-sys-color-surface-variant: #e7e0ec; --md-sys-color-outline: #79747e; --md-sys-color-error: #b3261e; }
+        :root { --md-sys-color-primary: #6750a4; --md-sys-color-surface: #fef7ff; --md-sys-color-on-surface: #1d1b20; --md-sys-color-surface-variant: #e7e0ec; --md-sys-color-error: #b3261e; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         body { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); max-width: 480px; margin: 0 auto; min-height: 100vh; }
+        
         /* PIN SEGURIDAD */
-        #pin-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        /* NOTIFICACIONES */
+        #pin-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        
+        /* TOASTS */
         #toast-container { position: fixed; top: 20px; width: 100%; z-index: 9999; pointer-events: none; text-align: center; }
-        .toast { padding: 15px; margin: 10px; border-radius: 10px; color: white; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .toast { padding: 15px 25px; margin: 10px; border-radius: 12px; color: white; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; pointer-events: all; }
         .toast-success { background: #4caf50; }
-        .toast-error { background: #f44336; cursor: pointer; pointer-events: all; }
+        .toast-error { background: var(--md-sys-color-error); }
         
         header { padding: 24px; text-align: center; border-bottom: 1px solid var(--md-sys-color-surface-variant); }
-        .tabs { display: flex; border-bottom: 1px solid var(--md-sys-color-surface-variant); }
-        .tab { flex: 1; padding: 15px; text-align: center; font-size: 13px; font-weight: 600; color: var(--md-sys-color-outline); cursor: pointer; }
+        .tabs { display: flex; border-bottom: 1px solid var(--md-sys-color-surface-variant); position: sticky; top: 0; z-index: 90; background: white; }
+        .tab { flex: 1; padding: 15px; text-align: center; font-size: 13px; font-weight: 600; color: #79747e; cursor: pointer; }
         .tab.active { color: var(--md-sys-color-primary); border-bottom: 2px solid var(--md-sys-color-primary); }
-        main { padding: 20px; padding-bottom: 100px; }
+        
+        main { padding: 20px; }
         .view { display: none; }
         .view.active { display: block; }
         .card { background: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid #e7e0ec; }
@@ -33,8 +36,9 @@
 <body>
 
     <div id="pin-overlay">
-        <h2>OSHI HOME</h2>
-        <input type="password" id="pin-input" placeholder="Ingrese PIN" style="width: 200px;">
+        <img src="logo.png" alt="OSHI HOME" style="max-width: 180px; margin-bottom: 20px;">
+        <input type="password" id="pin-input" placeholder="PIN" style="width: 200px; text-align: center;">
+        <p style="margin-bottom: 20px; color: #79747e; font-size: 14px;">Ingresá el pin de seguridad para acceder a la app</p>
         <button class="btn" style="width: 200px;" onclick="verificarPin()">Acceder</button>
     </div>
 
@@ -43,6 +47,16 @@
     <header>
         <img src="logo.png" alt="OSHI HOME Logo" style="max-width: 150px;">
     </header>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('ventas', this)">Vender</div>
+        <div class="tab" onclick="switchTab('productos', this)">Productos</div>
+        <div class="tab" onclick="switchTab('historial', this)">Historial</div>
+        <div class="tab" onclick="switchTab('estadisticas', this)">Stats</div>
+        <div class="tab" onclick="switchTab('backup', this)">Backup</div>
+    </div>
+
+
 <main>
         <div id="view-ventas" class="view active">
             <div class="card">
@@ -52,7 +66,7 @@
                 <select id="select-producto"><option value="">Cargando...</option></select>
                 <label>Cantidad</label>
                 <input type="number" id="cantidad-producto" value="1" min="1">
-                <button type="button" class="btn btn-primary" onclick="agregarAlPedido()">+ Agregar al pedido</button>
+                <button type="button" class="btn" onclick="agregarAlPedido()">+ Agregar al pedido</button>
             </div>
             <div id="resumen-actual" style="display:none;">
                 <h3 style="font-size:17px; margin-bottom:12px;">Detalle del Pedido</h3>
@@ -63,29 +77,27 @@
                         <span>TOTAL:</span><span id="total-pedido">$0</span>
                     </div>
                 </div>
-                <button type="button" class="btn btn-primary" onclick="finalizarVenta(true)">Finalizar y WhatsApp</button>
+                <button type="button" class="btn" onclick="finalizarVenta(true)">Finalizar y WhatsApp</button>
+                <button type="button" class="btn" style="margin-top:10px; background:transparent; border:1px solid var(--md-sys-color-primary); color:var(--md-sys-color-primary);" onclick="finalizarVenta(false)">Solo Registrar</button>
             </div>
         </div>
 
         <div id="view-productos" class="view">
-            <div id="prod-menu-main">
-                <div class="card">
-                    <h3 id="form-producto-title">Añadir Producto</h3>
-                    <input type="hidden" id="p-id">
-                    <input type="text" id="p-nombre" placeholder="Nombre Producto">
-                    <input type="number" id="p-precio" placeholder="Precio ($)">
-                    <input type="number" id="p-stock" placeholder="Stock">
-                    <div id="form-buttons-añadir">
-                        <button class="btn btn-primary" onclick="guardarProducto()">Guardar Producto</button>
-                    </div>
-                    <div id="form-buttons-editar" style="display:none;">
-                        <button class="btn" style="background:var(--md-sys-color-primary);" onclick="actualizarProducto()">Confirmar Edición</button>
-                        <button class="btn" style="background:#79747e; margin-top:10px;" onclick="limpiarFormularioProducto()">Cancelar</button>
-                    </div>
+            <div class="card">
+                <h3 id="form-producto-title">Añadir Producto</h3>
+                <input type="hidden" id="p-id">
+                <input type="text" id="p-nombre" placeholder="Nombre Producto">
+                <input type="number" id="p-precio" placeholder="Precio ($)">
+                <input type="number" id="p-stock" placeholder="Stock">
+                <div id="form-buttons-añadir">
+                    <button class="btn" onclick="guardarProducto()">Guardar Producto</button>
                 </div>
-                <input type="text" id="buscar-producto" placeholder="🔍 Buscar producto..." oninput="actualizarPantallas()">
-                <div id="lista-inventario"></div>
+                <div id="form-buttons-editar" style="display:none;">
+                    <button class="btn" onclick="actualizarProducto()">Confirmar Edición</button>
+                    <button class="btn" style="background:#79747e; margin-top:10px;" onclick="limpiarFormularioProducto()">Cancelar</button>
+                </div>
             </div>
+            <div id="lista-inventario"></div>
         </div>
 
         <div id="view-historial" class="view">
@@ -95,7 +107,7 @@
 
         <div id="view-estadisticas" class="view">
             <div class="card"><h3>Ingresos Totales</h3><h1 id="est-total-ingresos">$0</h1></div>
-            <div class="card"><h3>Producto Estrella</h3><div id="est-top-producto">-</div><div id="est-top-producto-cantidad"></div></div>
+            <div class="card"><h3>Producto Estrella</h3><div id="est-top-producto">-</div></div>
         </div>
 
         <div id="view-backup" class="view">
@@ -104,10 +116,11 @@
                 <button class="btn" onclick="hacerBackupGeneral()">GENERAR RESPALDO</button>
                 <hr style="margin: 20px 0;">
                 <textarea id="texto-backup-import" placeholder="Pegá el código de backup aquí..."></textarea>
-                <button class="btn btn-danger" onclick="cargarBackupGeneral()">CARGAR RESPALDO</button>
+                <button class="btn" style="background:var(--md-sys-color-error);" onclick="cargarBackupGeneral()">CARGAR RESPALDO</button>
             </div>
         </div>
     </main>
+
 <script>
         // --- CONFIGURACIÓN ---
         const SUPABASE_URL = "https://gudhifoitegxqqxihqoe.supabase.co";
@@ -117,8 +130,9 @@
         let productos = [];
         let historial = [];
         let carrito = [];
+        let editingId = null;
 
-        // --- SEGURIDAD Y NOTIFICACIONES ---
+        // --- SEGURIDAD ---
         function verificarPin() {
             if (document.getElementById('pin-input').value === "1502") {
                 document.getElementById('pin-overlay').style.display = 'none';
@@ -128,13 +142,14 @@
             }
         }
 
-        function showToast(msg, type) {
+        // --- NOTIFICACIONES ---
+        function showToast(msg, isError = false) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            toast.className = `toast ${type === 'error' ? 'toast-error' : 'toast-success'}`;
+            toast.className = `toast ${isError ? 'toast-error' : 'toast-success'}`;
             toast.innerText = msg;
             container.appendChild(toast);
-            if (type !== 'error') setTimeout(() => toast.remove(), 1500);
+            if (!isError) setTimeout(() => toast.remove(), 1500);
             else toast.onclick = () => toast.remove();
         }
 
@@ -142,12 +157,13 @@
         async function init() {
             try {
                 const { data: p } = await supabaseClient.from('productos').select('*');
-                const { data: h } = await supabaseClient.from('historial').select('*');
+                const { data: h } = await supabaseClient.from('historial').select('*').order('fecha', { ascending: false });
                 productos = p || [];
                 historial = h || [];
                 actualizarPantallas();
+                renderizarHistorial();
                 renderizarEstadisticas();
-            } catch (e) { showToast("Error al conectar: " + e.message, 'error'); }
+            } catch (e) { showToast("Error al conectar: " + e.message, true); }
         }
 
         // --- LÓGICA DE VENTAS ---
@@ -155,8 +171,8 @@
             const id = document.getElementById('select-producto').value;
             const cant = parseInt(document.getElementById('cantidad-producto').value);
             const p = productos.find(x => x.id == id);
-            if(!p) return showToast("Seleccioná un producto", 'error');
-            if(p.stock < cant) return showToast("Stock insuficiente", 'error');
+            if(!p) return showToast("Seleccioná un producto", true);
+            if(p.stock < cant) return showToast("Stock insuficiente", true);
             
             carrito.push({...p, cantidad: cant});
             document.getElementById('resumen-actual').style.display = 'block';
@@ -173,43 +189,67 @@
         }
 
         async function finalizarVenta(enviarWhatsApp) {
-            const venta = {
-                cliente: document.getElementById('cliente-nombre').value || "Cliente",
-                items: carrito,
-                total: carrito.reduce((s, i) => s + (i.precio * i.cantidad), 0),
-                fecha: new Date().toISOString(),
-                notas: document.getElementById('notas-pedido').value
-            };
+            const cliente = document.getElementById('cliente-nombre').value || "Cliente";
+            const total = carrito.reduce((s, i) => s + (i.precio * i.cantidad), 0);
+            const venta = { cliente, items: carrito, total, fecha: new Date().toISOString(), notas: document.getElementById('notas-pedido').value };
 
             try {
                 const { error } = await supabaseClient.from('historial').insert([venta]);
                 if(error) throw error;
-
                 for(let item of carrito) {
-                    let p = productos.find(x => x.id == item.id);
-                    await supabaseClient.from('productos').update({ stock: p.stock - item.cantidad }).eq('id', p.id);
+                    await supabaseClient.from('productos').update({ stock: item.stock - item.cantidad }).eq('id', item.id);
                 }
-
                 if(enviarWhatsApp) {
-                    let msg = `Pedido para ${venta.cliente}: ` + carrito.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
+                    let msg = `Hola ${cliente}! Gracias por tu compra en OSHI HOME. Detalle:\n` + carrito.map(i => `- ${i.cantidad}x ${i.nombre}`).join('\n') + `\nTotal: $${total}`;
                     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                 }
-
-                showToast("Venta finalizada exitosamente", 'success');
+                showToast("Venta registrada correctamente");
                 carrito = [];
                 document.getElementById('resumen-actual').style.display = 'none';
                 init();
-            } catch(e) { showToast("Error: " + e.message, 'error'); }
+            } catch(e) { showToast("Error al registrar: " + e.message, true); }
         }
 
-        // --- GESTIÓN PRODUCTOS ---
+        // --- PRODUCTOS ---
         async function guardarProducto() {
             const nombre = document.getElementById('p-nombre').value;
             const precio = parseInt(document.getElementById('p-precio').value);
             const stock = parseInt(document.getElementById('p-stock').value);
             const { error } = await supabaseClient.from('productos').insert([{ nombre, precio, stock }]);
-            if(error) showToast("Error: " + error.message, 'error');
-            else { showToast("Producto guardado", 'success'); init(); }
+            if(error) showToast("Error: " + error.message, true); else showToast("Guardado!");
+            limpiarFormularioProducto();
+            init();
+        }
+
+        async function actualizarProducto() {
+            const nombre = document.getElementById('p-nombre').value;
+            const precio = parseInt(document.getElementById('p-precio').value);
+            const stock = parseInt(document.getElementById('p-stock').value);
+            await supabaseClient.from('productos').update({ nombre, precio, stock }).eq('id', editingId);
+            showToast("Producto actualizado");
+            limpiarFormularioProducto();
+            init();
+        }
+
+        function editarProducto(id) {
+            const p = productos.find(x => x.id == id);
+            document.getElementById('p-nombre').value = p.nombre;
+            document.getElementById('p-precio').value = p.precio;
+            document.getElementById('p-stock').value = p.stock;
+            editingId = p.id;
+            document.getElementById('form-producto-title').innerText = "Editando...";
+            document.getElementById('form-buttons-añadir').style.display = 'none';
+            document.getElementById('form-buttons-editar').style.display = 'block';
+        }
+
+        function limpiarFormularioProducto() {
+            document.getElementById('p-nombre').value = '';
+            document.getElementById('p-precio').value = '';
+            document.getElementById('p-stock').value = '';
+            editingId = null;
+            document.getElementById('form-producto-title').innerText = "Añadir Producto";
+            document.getElementById('form-buttons-añadir').style.display = 'block';
+            document.getElementById('form-buttons-editar').style.display = 'none';
         }
 
         async function eliminarProducto(id) {
@@ -222,12 +262,21 @@
             const sel = document.getElementById('select-producto');
             sel.innerHTML = '<option value="">Elegí un producto...</option>' + 
                             productos.map(p => `<option value="${p.id}">${p.nombre} ($${p.precio})</option>`).join('');
-            
             document.getElementById('lista-inventario').innerHTML = productos.map(p => `
                 <div class="card">
                     <strong>${p.nombre}</strong><br>Precio: $${p.precio} | Stock: ${p.stock}
-                    <button class="btn" style="background:#b3261e; margin-top:5px;" onclick="eliminarProducto('${p.id}')">Eliminar</button>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button class="btn" style="background:var(--md-sys-color-primary);" onclick="editarProducto('${p.id}')">Editar</button>
+                        <button class="btn" style="background:#b3261e;" onclick="eliminarProducto('${p.id}')">Borrar</button>
+                    </div>
                 </div>`).join('');
+        }
+
+        // --- AUXILIARES ---
+        function renderizarHistorial() {
+            document.getElementById('lista-historial').innerHTML = historial.map(h => `
+                <div class="card"><strong>${h.cliente}</strong><br>Total: $${h.total}<br><small>${new Date(h.fecha).toLocaleDateString()}</small></div>
+            `).join('');
         }
 
         function renderizarEstadisticas() {
@@ -240,6 +289,21 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById('view-' + tab).classList.add('active');
             el.classList.add('active');
+        }
+
+        // --- BACKUP ---
+        function hacerBackupGeneral() {
+            const data = { productos, historial };
+            document.getElementById('texto-backup-import').value = JSON.stringify(data);
+            showToast("Backup generado en el campo de texto");
+        }
+
+        async function cargarBackupGeneral() {
+            try {
+                const data = JSON.parse(document.getElementById('texto-backup-import').value);
+                // Aquí iría lógica compleja de migración si fuera necesario, por ahora alerta:
+                alert("Esta función requiere sobrescritura de base de datos. Asegúrate de tener respaldo.");
+            } catch(e) { showToast("Error en formato de backup", true); }
         }
     </script>
 </body>
