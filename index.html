@@ -3,73 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSHI HOME - V7.3</title>
+    <title>Aromas - OSHI HOME</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Dancing+Script:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --md-sys-color-primary: #6750a4; --md-sys-color-surface: #fef7ff; --md-sys-color-on-surface: #1d1b20; --md-sys-color-error: #b3261e; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
-        body { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); max-width: 480px; margin: 0 auto; min-height: 100vh; }
-        #pin-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        #toast-container { position: fixed; top: 20px; width: 100%; z-index: 9999; pointer-events: none; text-align: center; }
-        .toast { padding: 15px 25px; margin: 10px; border-radius: 12px; color: white; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; pointer-events: all; }
-        .toast-success { background: #4caf50; }
-        .toast-error { background: var(--md-sys-color-error); }
-        header { padding: 24px; text-align: center; border-bottom: 1px solid #e7e0ec; }
-        .tabs { display: flex; border-bottom: 1px solid #e7e0ec; position: sticky; top: 0; z-index: 90; background: white; }
-        .tab { flex: 1; padding: 15px; text-align: center; font-size: 13px; font-weight: 600; color: #79747e; cursor: pointer; }
-        .tab.active { color: var(--md-sys-color-primary); border-bottom: 2px solid var(--md-sys-color-primary); }
-        main { padding: 20px; }
-        .view { display: none; }
+        :root {
+            --oshi-gold: #D4AF37;
+            --oshi-black: #1a1a1a;
+            --oshi-serif: 'Cormorant Garamond', serif;
+            --oshi-script: 'Dancing Script', cursive;
+
+            --md-sys-color-primary: #6750a4;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #eaddff;
+            --md-sys-color-surface: #fef7ff;
+            --md-sys-color-on-surface: #1d1b20;
+            --md-sys-color-surface-variant: #e7e0ec;
+            --md-sys-color-outline: #79747e;
+            --md-sys-color-error: #b3261e;
+            --oshi-input-border: #d1d1d1;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.1); }
+        
+        #pin-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        header { padding: 24px 20px; background: var(--md-sys-color-surface); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--md-sys-color-surface-variant); display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .tabs { display: flex; padding: 0 10px; border-bottom: 1px solid var(--md-sys-color-surface-variant); background: var(--md-sys-color-surface); flex-wrap: wrap; position: sticky; top: 0; z-index: 90; }
+        .tab { flex: 1; min-width: 20%; padding: 16px 5px; text-align: center; font-size: 13px; font-weight: 600; color: var(--md-sys-color-outline); cursor: pointer; transition: all 0.3s ease; position: relative; }
+        .tab.active { color: var(--md-sys-color-primary); }
+        .tab.active::after { content: ''; position: absolute; bottom: 0; left: 10%; right: 10%; height: 4px; background: var(--md-sys-color-primary); border-radius: 4px 4px 0 0; }
+        
+        main { flex: 1; padding: 24px; padding-bottom: 100px; }
+        .view { display: none; animation: fadeIn 0.4s ease; }
         .view.active { display: block; }
-        .card { background: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid #e7e0ec; }
-        input, select, textarea { width: 100%; padding: 16px; border-radius: 16px; border: 1px solid #d1d1d1; margin-bottom: 10px; }
-        .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; font-weight: bold; background: var(--md-sys-color-primary); color: white; cursor: pointer; margin-top: 5px; }
-        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #e7e0ec; font-size: 14px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .card { background: white; border-radius: 28px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--md-sys-color-surface-variant); box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 16px; border-radius: 16px; border: 1px solid var(--oshi-input-border); font-size: 15px; background: transparent; color: var(--oshi-black); margin-bottom:12px; }
+        .btn { width: 100%; padding: 18px; border-radius: 20px; border: none; font-weight: 700; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; }
+        .btn-primary { background: var(--md-sys-color-primary); color: white; }
+        .btn-danger { background: var(--md-sys-color-error); color: white; padding: 16px; font-size: 15px; border-radius: 20px; border: none; font-weight: 700; margin-top: 10px;}
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px dashed var(--md-sys-color-surface-variant); }
+        .menu-btn { flex: 1; padding: 20px 10px; border-radius: 24px; border: 1px solid var(--md-sys-color-surface-variant); display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; background: white; }
     </style>
 </head>
 <body>
+
     <div id="pin-overlay">
-        <img src="logo.png" alt="OSHI HOME" style="max-width: 180px; margin-bottom: 20px;">
-        <input type="password" id="pin-input" placeholder="PIN" style="width: 200px; text-align: center;">
+        <img src="logo.png" alt="OSHI HOME Logo" style="max-width: 180px; margin-bottom: 20px;">
+        <input type="password" id="pin-input" placeholder="Ingresá el PIN" style="width: 250px; text-align: center;">
         <p style="margin-bottom: 20px; color: #79747e; font-size: 14px;">Ingresá el pin de seguridad para acceder a la app</p>
-        <button class="btn" style="width: 200px;" onclick="verificarPin()">Acceder</button>
+        <button class="btn btn-primary" style="width: 250px;" onclick="verificarPin()">Acceder</button>
     </div>
-    <div id="toast-container"></div>
+
     <header>
-        <img src="logo.png" alt="Logo" style="max-width: 150px;">
+        <img src="logo.png" alt="OSHI HOME Logo" style="max-width: 180px; height: auto;">
     </header>
+
     <div class="tabs">
         <div class="tab active" onclick="switchTab('ventas', this)">Vender</div>
         <div class="tab" onclick="switchTab('productos', this)">Productos</div>
         <div class="tab" onclick="switchTab('historial', this)">Historial</div>
-        <div class="tab" onclick="switchTab('estadisticas', this)">Stats</div>
+        <div class="tab" onclick="switchTab('estadisticas', this)">Estadísticas</div>
         <div class="tab" onclick="switchTab('backup', this)">Backup</div>
     </div>
-
 
 
 
 <main>
         <div id="view-ventas" class="view active">
             <div class="card">
-                <input type="text" id="cliente-nombre" placeholder="Nombre Cliente">
+                <label>Nombre del Cliente</label>
+                <input type="text" id="cliente-nombre" placeholder="Ej: Maria Gomez">
+                <label>Seleccionar Producto</label>
                 <select id="select-producto"><option value="">Cargando...</option></select>
-                <div style="display:flex; gap:10px;">
-                    <input type="number" id="cantidad-producto" value="1" min="1" placeholder="Cant.">
-                    <button class="btn" style="margin-top:0;" onclick="agregarAlPedido()">+ Agregar</button>
-                </div>
+                <label>Cantidad</label>
+                <input type="number" id="cantidad-producto" value="1" min="1">
+                <button class="btn btn-primary" onclick="agregarAlPedido()">+ Agregar al pedido</button>
             </div>
             <div id="resumen-actual" style="display:none;">
+                <h3 style="font-size:17px; margin-bottom:12px;">Detalle del Pedido</h3>
                 <div class="card" id="lista-pedido"></div>
-                <textarea id="notas-pedido" placeholder="Notas / Dedicatoria"></textarea>
-                <div class="card">
+                <textarea id="notas-pedido" placeholder="Notas de entrega o dedicatoria (Opcional)"></textarea>
+                <div class="card" style="background: var(--md-sys-color-primary-container);">
                     <div style="display:flex; justify-content:space-between; font-weight:700; font-size:20px;">
                         <span>TOTAL:</span><span id="total-pedido">$0</span>
                     </div>
                 </div>
-                <button class="btn" style="background:#25D366;" onclick="finalizarVenta(true)">Enviar Factura WhatsApp</button>
-                <button class="btn" style="background:#79747e;" onclick="finalizarVenta(false)">Solo Registrar</button>
+                <button class="btn btn-primary" onclick="finalizarVenta(true)">Enviar Factura WhatsApp</button>
+                <button class="btn" style="background:#79747e; color:white;" onclick="finalizarVenta(false)">Solo Registrar</button>
             </div>
         </div>
 
@@ -77,12 +101,14 @@
             <div class="card">
                 <h3 id="form-producto-title">Añadir Producto</h3>
                 <input type="hidden" id="p-id">
-                <input type="text" id="p-nombre" placeholder="Nombre Producto">
+                <input type="text" id="p-nombre" placeholder="Producto">
                 <input type="number" id="p-precio" placeholder="Precio ($)">
                 <input type="number" id="p-stock" placeholder="Stock">
-                <div id="form-buttons-añadir"><button class="btn" onclick="guardarProducto()">Guardar Producto</button></div>
+                <div id="form-buttons-añadir">
+                    <button class="btn btn-primary" onclick="guardarProducto()">Guardar</button>
+                </div>
                 <div id="form-buttons-editar" style="display:none;">
-                    <button class="btn" onclick="actualizarProducto()">Confirmar Edición</button>
+                    <button class="btn btn-primary" onclick="actualizarProducto()">Confirmar Edición</button>
                     <button class="btn" style="background:#79747e; margin-top:10px;" onclick="limpiarFormularioProducto()">Cancelar</button>
                 </div>
             </div>
@@ -90,22 +116,26 @@
         </div>
 
         <div id="view-historial" class="view">
+            <h3 style="margin-bottom:15px;">Ventas Realizadas</h3>
             <button class="btn" style="background:var(--md-sys-color-error); margin-bottom:15px;" onclick="borrarHistorialCompleto()">🗑 Borrar Todo el Historial</button>
             <div id="lista-historial"></div>
         </div>
 
         <div id="view-estadisticas" class="view">
             <div class="card"><h3>Ingresos Totales</h3><h1 id="est-total-ingresos">$0</h1></div>
+            <div class="card"><h3>Producto Estrella</h3><div id="est-top-producto">-</div><div id="est-top-producto-cantidad"></div></div>
         </div>
 
         <div id="view-backup" class="view">
             <div class="card">
-                <h3>Backup</h3>
-                <button class="btn" onclick="hacerBackupGeneral()">Descargar Backup</button>
+                <h3>Copia de Seguridad</h3>
+                <button class="btn btn-primary" onclick="hacerBackupGeneral()">GENERAR RESPALDO (EXPORTAR)</button>
+                <hr style="margin: 20px 0;">
+                <textarea id="texto-backup-import" placeholder="Pegá el código de backup aquí..."></textarea>
+                <button class="btn btn-danger" onclick="cargarBackupGeneral()">CARGAR RESPALDO (IMPORTAR)</button>
             </div>
         </div>
     </main>
-
 
 
 
@@ -119,7 +149,7 @@
         let carrito = [];
         let editingId = null;
 
-        // --- SEGURIDAD Y NOTIFICACIONES ---
+        // --- SEGURIDAD ---
         function verificarPin() {
             if (document.getElementById('pin-input').value === "1502") {
                 document.getElementById('pin-overlay').style.display = 'none';
@@ -127,37 +157,26 @@
             } else { alert("PIN incorrecto"); }
         }
 
-        function showToast(msg, isError = false) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${isError ? 'toast-error' : 'toast-success'}`;
-            toast.innerText = msg;
-            container.appendChild(toast);
-            if (!isError) setTimeout(() => toast.remove(), 1500);
-            else toast.onclick = () => toast.remove();
-        }
-
+        // --- INICIALIZACIÓN ---
         async function init() {
-            try {
-                const { data: p } = await supabaseClient.from('productos').select('*');
-                const { data: h } = await supabaseClient.from('historial').select('*').order('fecha', { ascending: false });
-                productos = p || [];
-                historial = h || [];
-                actualizarPantallas();
-                renderizarHistorial();
-                renderizarEstadisticas();
-            } catch (e) { showToast("Error conexión: " + e.message, true); }
+            const { data: p } = await supabaseClient.from('productos').select('*');
+            const { data: h } = await supabaseClient.from('historial').select('*').order('fecha', { ascending: false });
+            productos = p || [];
+            historial = h || [];
+            actualizarPantallas();
+            renderizarHistorial();
+            renderizarEstadisticas();
         }
 
-        // --- VENTAS Y CARRITO ---
+        // --- VENTAS ---
         function agregarAlPedido() {
             const id = document.getElementById('select-producto').value;
             const cant = parseInt(document.getElementById('cantidad-producto').value);
             const p = productos.find(x => x.id == id);
-            if(!p) return showToast("Seleccioná un producto", true);
+            if(!p) return alert("Seleccioná un producto");
             
             const enCarrito = carrito.filter(item => item.id == id).reduce((s, i) => s + i.cantidad, 0);
-            if(p.stock < (enCarrito + cant)) return showToast("Stock insuficiente", true);
+            if(p.stock < (enCarrito + cant)) return alert("Stock insuficiente");
             
             const existente = carrito.find(x => x.id == id);
             if(existente) existente.cantidad += cant;
@@ -179,21 +198,20 @@
                     </div>
                 </div>
             `).join('');
-            let total = carrito.reduce((s, i) => s + (i.precio * i.cantidad), 0);
-            document.getElementById('total-pedido').innerText = '$' + total;
+            document.getElementById('total-pedido').innerText = '$' + carrito.reduce((s, i) => s + (i.precio * i.cantidad), 0);
         }
 
         function ajustarCant(index, delta) {
             const item = carrito[index];
             const p = productos.find(x => x.id == item.id);
-            if(delta > 0 && p.stock <= item.cantidad) return showToast("No hay más stock", true);
+            if(delta > 0 && p.stock <= item.cantidad) return alert("No hay más stock");
             item.cantidad += delta;
             if(item.cantidad < 1) carrito.splice(index, 1);
             renderizarCarrito();
         }
 
         async function finalizarVenta(enviarWhatsApp) {
-            if(carrito.length === 0) return showToast("El carrito está vacío", true);
+            if(carrito.length === 0) return alert("El carrito está vacío");
             const venta = {
                 cliente: document.getElementById('cliente-nombre').value || "Cliente",
                 items: carrito,
@@ -201,40 +219,45 @@
                 fecha: new Date().toISOString(),
                 notas: document.getElementById('notas-pedido').value
             };
-            try {
-                const { error } = await supabaseClient.from('historial').insert([venta]);
-                if(error) throw error;
-                for(let item of carrito) {
-                    await supabaseClient.from('productos').update({ stock: productos.find(x=>x.id == item.id).stock - item.cantidad }).eq('id', item.id);
-                }
-                if(enviarWhatsApp) generarWhatsApp(venta);
-                showToast("Venta registrada");
-                carrito = [];
-                document.getElementById('resumen-actual').style.display = 'none';
-                init();
-            } catch(e) { showToast("Error: " + e.message, true); }
+            const { error } = await supabaseClient.from('historial').insert([venta]);
+            if(error) return alert("Error: " + error.message);
+            for(let item of carrito) {
+                await supabaseClient.from('productos').update({ stock: productos.find(x=>x.id == item.id).stock - item.cantidad }).eq('id', item.id);
+            }
+            if(enviarWhatsApp) generarWhatsApp(venta);
+            alert("Venta registrada con éxito");
+            carrito = [];
+            document.getElementById('resumen-actual').style.display = 'none';
+            init();
         }
 
         function generarWhatsApp(v) {
-            let msg = `🛍️ *Factura OSHI HOME*\n📅 ${new Date(v.fecha).toLocaleString()}\n👤 ${v.cliente}\n\n`;
+            let msg = `🛍️ *Resumen de Factura - OSHI HOME*\n📅 ${new Date(v.fecha).toLocaleString()}\n👤 Cliente: ${v.cliente}\n\n`;
             msg += v.items.map(i => `• ${i.cantidad}x ${i.nombre}: $${i.precio * i.cantidad}`).join('\n');
-            msg += `\n\n💰 *TOTAL: $${v.total}*\n${v.notas ? '📝 ' + v.notas : ''}`;
+            msg += `\n\n💰 *TOTAL: $${v.total}*\n\n¡Gracias por tu compra!`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
         // --- PRODUCTOS ---
         async function guardarProducto() {
-            const { error } = await supabaseClient.from('productos').insert([{ 
+            await supabaseClient.from('productos').insert([{ 
                 nombre: document.getElementById('p-nombre').value, 
                 precio: parseInt(document.getElementById('p-precio').value), 
                 stock: parseInt(document.getElementById('p-stock').value) 
             }]);
-            if(error) showToast("Error", true); else { showToast("Guardado"); limpiarFormularioProducto(); init(); }
+            alert("Producto guardado");
+            limpiarFormularioProducto();
+            init();
         }
 
-        async function eliminarProducto(id) {
-            if(!confirm("¿Borrar producto?")) return;
-            await supabaseClient.from('productos').delete().eq('id', id);
+        async function actualizarProducto() {
+            await supabaseClient.from('productos').update({ 
+                nombre: document.getElementById('p-nombre').value,
+                precio: parseInt(document.getElementById('p-precio').value),
+                stock: parseInt(document.getElementById('p-stock').value)
+            }).eq('id', editingId);
+            alert("Producto actualizado");
+            limpiarFormularioProducto();
             init();
         }
 
@@ -244,19 +267,14 @@
             document.getElementById('p-precio').value = p.precio;
             document.getElementById('p-stock').value = p.stock;
             editingId = p.id;
-            document.getElementById('form-producto-title').innerText = "Editando";
+            document.getElementById('form-producto-title').innerText = "Editando Producto";
             document.getElementById('form-buttons-añadir').style.display = 'none';
             document.getElementById('form-buttons-editar').style.display = 'block';
         }
 
-        async function actualizarProducto() {
-            await supabaseClient.from('productos').update({ 
-                nombre: document.getElementById('p-nombre').value,
-                precio: parseInt(document.getElementById('p-precio').value),
-                stock: parseInt(document.getElementById('p-stock').value)
-            }).eq('id', editingId);
-            showToast("Actualizado");
-            limpiarFormularioProducto();
+        async function eliminarProducto(id) {
+            if(!confirm("¿Borrar producto?")) return;
+            await supabaseClient.from('productos').delete().eq('id', id);
             init();
         }
 
@@ -271,66 +289,51 @@
         }
 
         // --- HISTORIAL ---
-  
         async function eliminarVenta(id) {
-            // Convertimos el ID a número por seguridad si es necesario
-            const idVenta = parseInt(id); 
-            
-            const { error } = await supabaseClient
-                .from('historial')
-                .delete()
-                .eq('id', idVenta);
-
-            if (error) {
-                console.error("Error al borrar:", error);
-                showToast("Error al borrar: " + error.message, true);
-            } else {
-                showToast("Venta eliminada correctamente");
-                await init(); // Forzamos recarga total para ver cambios
-            }
+            if(!confirm("¿Borrar venta?")) return;
+            await supabaseClient.from('historial').delete().eq('id', id);
+            init();
         }
 
         async function borrarHistorialCompleto() {
-            if(!confirm("¿Estás seguro de borrar TODO el historial de ventas? Esta acción es irreversible.")) return;
-
-            // Usamos una lógica de borrado masivo segura
-            const { error } = await supabaseClient
-                .from('historial')
-                .delete()
-                .neq('id', 0); // Borra todo registro cuyo ID no sea 0
-
-            if (error) {
-                console.error("Error al borrar todo:", error);
-                showToast("Error al borrar historial: " + error.message, true);
-            } else {
-                showToast("Historial borrado completamente");
-                await init(); // Forzamos recarga
-            }
+            if(!confirm("¿Borrar TODO el historial?")) return;
+            await supabaseClient.from('historial').delete().neq('id', 0);
+            init();
+        }
 
         function renderizarHistorial() {
             document.getElementById('lista-historial').innerHTML = historial.map(h => `
                 <div class="card">
-                    <strong>${h.cliente}</strong> - $${h.total}<br>
+                    <strong>${h.cliente}</strong> ($${h.total})<br>
                     <small>${new Date(h.fecha).toLocaleString()}</small><br>
-                    <button class="btn" style="background:#25D366; padding:8px;" onclick="generarWhatsApp(${JSON.stringify(h).replace(/"/g, '&quot;')})">Enviar Factura</button>
-                    <button class="btn" style="background:var(--md-sys-color-error); padding:8px;" onclick="eliminarVenta('${h.id}')">Borrar</button>
+                    <button class="btn" style="padding:5px; background:green;" onclick="generarWhatsApp(${JSON.stringify(h).replace(/"/g, '&quot;')})">Enviar Factura</button>
+                    <button class="btn" style="padding:5px; background:red;" onclick="eliminarVenta('${h.id}')">Borrar Venta</button>
                 </div>
             `).join('');
         }
 
-        // --- UTILIDADES ---
-        function renderizarEstadisticas() {
-            let total = historial.reduce((acc, h) => acc + h.total, 0);
-            document.getElementById('est-total-ingresos').innerText = `$${total}`;
+        // --- BACKUP ---
+        function hacerBackupGeneral() {
+            const data = JSON.stringify({productos, historial});
+            const blob = new Blob([data], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'backup_oshi.json';
+            a.click();
         }
-        
+
+        // --- ESTADÍSTICAS ---
+        function renderizarEstadisticas() {
+            document.getElementById('est-total-ingresos').innerText = '$' + historial.reduce((acc, h) => acc + h.total, 0);
+        }
+
         function switchTab(tab, el) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById('view-' + tab).classList.add('active');
             el.classList.add('active');
         }
-
+        
         function actualizarPantallas() {
             document.getElementById('select-producto').innerHTML = '<option value="">Elegí...</option>' + productos.map(p => `<option value="${p.id}">${p.nombre} ($${p.precio})</option>`).join('');
             document.getElementById('lista-inventario').innerHTML = productos.map(p => `
@@ -340,3 +343,6 @@
                 </div>`).join('');
         }
     </script>
+</body>
+</html>
+
