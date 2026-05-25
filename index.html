@@ -123,7 +123,9 @@
             if (document.getElementById('pin-input').value === "1502") {
                 document.getElementById('pin-overlay').style.display = 'none';
                 init();
-            } else { alert("PIN incorrecto"); }
+            } else {
+                alert("PIN incorrecto");
+            }
         }
 
         function showToast(msg, isError = false) {
@@ -149,16 +151,16 @@
             } catch (e) { showToast("Error al conectar: " + e.message, true); }
         }
 
-        // --- VENTAS ---
+        // --- VENTAS Y CARRITO ---
         function agregarAlPedido() {
             const id = document.getElementById('select-producto').value;
             const cant = parseInt(document.getElementById('cantidad-producto').value);
             const p = productos.find(x => x.id == id);
             if(!p) return showToast("Seleccioná un producto", true);
             
-            // Verificamos stock en carrito vs real
-            const enCarrito = carrito.filter(x => x.id == p.id).reduce((s, i) => s + i.cantidad, 0);
-            if((p.stock - enCarrito) < cant) return showToast("Stock insuficiente", true);
+            // Validar stock total (carrito + nuevo)
+            const enCarrito = carrito.filter(item => item.id == id).reduce((s, i) => s + i.cantidad, 0);
+            if(p.stock < (enCarrito + cant)) return showToast("Stock insuficiente", true);
             
             carrito.push({...p, cantidad: cant});
             document.getElementById('resumen-actual').style.display = 'block';
@@ -169,13 +171,19 @@
             const lista = document.getElementById('lista-pedido');
             lista.innerHTML = carrito.map((item, index) => `
                 <div class="list-item">
-                    <span>${item.cantidad}x ${item.nombre}</span>
-                    <span>$${item.precio * item.cantidad}</span>
-                    <button class="btn" style="width:40px; margin:0;" onclick="carrito.splice(${index},1); renderizarCarrito();">X</button>
+                    <span>${item.cantidad}x ${item.nombre} - $${item.precio * item.cantidad}</span>
+                    <button class="btn" style="width: auto; padding: 5px 10px; margin:0;" onclick="cambiarCantidad(${index}, -1)">-</button>
+                    <button class="btn" style="width: auto; padding: 5px 10px; margin:0; background:var(--md-sys-color-error);" onclick="carrito.splice(${index}, 1); renderizarCarrito();">X</button>
                 </div>
             `).join('');
             let total = carrito.reduce((s, i) => s + (i.precio * i.cantidad), 0);
             document.getElementById('total-pedido').innerText = '$' + total;
+        }
+
+        function cambiarCantidad(index, delta) {
+            carrito[index].cantidad += delta;
+            if(carrito[index].cantidad < 1) carrito.splice(index, 1);
+            renderizarCarrito();
         }
 
         async function finalizarVenta(enviarWhatsApp) {
@@ -191,40 +199,49 @@
                 const { error } = await supabaseClient.from('historial').insert([venta]);
                 if(error) throw error;
                 for(let item of carrito) {
-                    let p = productos.find(x => x.id == item.id);
-                    await supabaseClient.from('productos').update({ stock: p.stock - item.cantidad }).eq('id', p.id);
+                    await supabaseClient.from('productos').update({ stock: productos.find(x=>x.id == item.id).stock - item.cantidad }).eq('id', item.id);
                 }
-                if(enviarWhatsApp) enviarFacturaWhatsApp(venta);
-                showToast("Venta registrada");
+                if(enviarWhatsApp) generarWhatsApp(venta);
+                showToast("Venta registrada con éxito");
                 carrito = [];
                 document.getElementById('resumen-actual').style.display = 'none';
                 init();
             } catch(e) { showToast("Error: " + e.message, true); }
         }
 
-        function enviarFacturaWhatsApp(v) {
-            let msg = `*OSHI HOME - Factura*\nFecha: ${new Date(v.fecha).toLocaleDateString()}\nCliente: ${v.cliente}\n\n`;
-            msg += v.items.map(i => `${i.cantidad}x ${i.nombre} ($${i.precio})`).join('\n');
-            msg += `\n\n*TOTAL: $${v.total}*`;
+        function generarWhatsApp(venta) {
+            let msg = `🛍️ *Resumen de Factura - OSHI HOME*\n📅 Fecha: ${new Date(venta.fecha).toLocaleDateString()}\n👤 Cliente: ${venta.cliente}\n\n`;
+            msg += venta.items.map(i => `• ${i.cantidad}x ${i.nombre} ($${i.precio * i.cantidad})`).join('\n');
+            msg += `\n\n💰 *Total: $${venta.total}*\n\n¡Gracias por tu compra!`;
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        // --- PRODUCTOS ---
+        // --- PRODUCTOS Y CRUD ---
         async function guardarProducto() {
             const nombre = document.getElementById('p-nombre').value;
             const precio = parseInt(document.getElementById('p-precio').value);
             const stock = parseInt(document.getElementById('p-stock').value);
-            const { error } = await supabaseClient.from('productos').insert([{ nombre, precio, stock }]);
-            if(error) showToast("Error", true); else { showToast("Guardado"); init(); }
+            await supabaseClient.from('productos').insert([{ nombre, precio, stock }]);
+            showToast("Producto guardado");
+            limpiarFormularioProducto();
+            init();
         }
 
         async function actualizarProducto() {
-            const { error } = await supabaseClient.from('productos').update({ 
+            await supabaseClient.from('productos').update({ 
                 nombre: document.getElementById('p-nombre').value,
                 precio: parseInt(document.getElementById('p-precio').value),
                 stock: parseInt(document.getElementById('p-stock').value)
             }).eq('id', editingId);
-            if(error) showToast("Error", true); else { showToast("Actualizado"); limpiarFormularioProducto(); init(); }
+            showToast("Producto actualizado");
+            limpiarFormularioProducto();
+            init();
+        }
+
+        async function eliminarProducto(id) {
+            if(!confirm("¿Borrar producto?")) return;
+            await supabaseClient.from('productos').delete().eq('id', id);
+            init();
         }
 
         function editarProducto(id) {
@@ -238,57 +255,38 @@
             document.getElementById('form-buttons-editar').style.display = 'block';
         }
 
-        async function eliminarProducto(id) {
-            if(!confirm("¿Borrar producto?")) return;
-            await supabaseClient.from('productos').delete().eq('id', id);
-            init();
-        }
-
         function limpiarFormularioProducto() {
-            editingId = null;
             document.getElementById('p-nombre').value = '';
             document.getElementById('p-precio').value = '';
             document.getElementById('p-stock').value = '';
+            editingId = null;
             document.getElementById('form-producto-title').innerText = "Añadir Producto";
             document.getElementById('form-buttons-añadir').style.display = 'block';
             document.getElementById('form-buttons-editar').style.display = 'none';
         }
 
         // --- HISTORIAL ---
-        function renderizarHistorial() {
-            document.getElementById('lista-historial').innerHTML = historial.map(h => `
-                <div class="card">
-                    <strong>${h.cliente}</strong> (${new Date(h.fecha).toLocaleDateString()})<br>Total: $${h.total}
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <button class="btn" onclick="enviarFacturaWhatsApp(${JSON.stringify(h).replace(/"/g, '&quot;')})">Enviar Factura</button>
-                        <button class="btn" style="background:#b3261e;" onclick="borrarVenta('${h.id}')">Borrar</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function borrarVenta(id) {
+        async function eliminarVenta(id) {
             await supabaseClient.from('historial').delete().eq('id', id);
             init();
         }
 
         async function borrarHistorialCompleto() {
-            if(!confirm("¿BORRAR TODO EL HISTORIAL?")) return;
-            await supabaseClient.from('historial').delete().neq('id', '0');
+            if(!confirm("¿Borrar TODO el historial?")) return;
+            // Supabase delete all
+            await supabaseClient.from('historial').delete().neq('id', 0);
             init();
         }
 
-        // --- EXTRAS ---
-        function actualizarPantallas() {
-            const sel = document.getElementById('select-producto');
-            sel.innerHTML = '<option value="">Elegí un producto...</option>' + productos.map(p => `<option value="${p.id}">${p.nombre} ($${p.precio})</option>`).join('');
-            document.getElementById('lista-inventario').innerHTML = productos.map(p => `
-                <div class="card"><strong>${p.nombre}</strong><br>Precio: $${p.precio} | Stock: ${p.stock}
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <button class="btn" onclick="editarProducto('${p.id}')">Editar</button>
-                        <button class="btn" style="background:#b3261e;" onclick="eliminarProducto('${p.id}')">Borrar</button>
-                    </div>
-                </div>`).join('');
+        function renderizarHistorial() {
+            document.getElementById('lista-historial').innerHTML = historial.map(h => `
+                <div class="card">
+                    <strong>${h.cliente}</strong> ($${h.total})<br>
+                    <small>${new Date(h.fecha).toLocaleString()}</small><br>
+                    <button class="btn" style="padding:5px; margin:5px 0;" onclick="generarWhatsApp(${JSON.stringify(h).replace(/"/g, '&quot;')})">Enviar Factura</button>
+                    <button class="btn" style="padding:5px; margin:5px 0; background:var(--md-sys-color-error);" onclick="eliminarVenta('${h.id}')">Eliminar Venta</button>
+                </div>
+            `).join('');
         }
 
         function renderizarEstadisticas() {
@@ -302,13 +300,20 @@
             document.getElementById('view-' + tab).classList.add('active');
             el.classList.add('active');
         }
-
-        function hacerBackupGeneral() {
-            const data = JSON.stringify({productos, historial});
-            const blob = new Blob([data], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = 'backup_oshi.json'; a.click();
+        
+        function actualizarPantallas() {
+            const sel = document.getElementById('select-producto');
+            sel.innerHTML = '<option value="">Elegí un producto...</option>' + 
+                            productos.map(p => `<option value="${p.id}">${p.nombre} ($${p.precio})</option>`).join('');
+            
+            document.getElementById('lista-inventario').innerHTML = productos.map(p => `
+                <div class="card">
+                    <strong>${p.nombre}</strong><br>Precio: $${p.precio} | Stock: ${p.stock}
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button class="btn" style="background:var(--md-sys-color-primary);" onclick="editarProducto('${p.id}')">Editar</button>
+                        <button class="btn" style="background:#b3261e;" onclick="eliminarProducto('${p.id}')">Borrar</button>
+                    </div>
+                </div>`).join('');
         }
     </script>
 </body>
